@@ -18,6 +18,8 @@ window.__ModuleLoader__.load({
 .tla-tabRoot{flex-direction:column;min-height:0;height:100%;display:flex}
 .tla-toolbar{align-items:center;gap:4px;padding:4px 8px 6px;display:flex}
 .tla-toolbarTitle{flex:1;min-width:0;color:var(--dsw-alias-label-secondary);font-size:11px;line-height:16px;text-overflow:ellipsis;white-space:nowrap;overflow:hidden}
+.tla-tokens{color:var(--dsw-alias-label-secondary);font-size:11px;line-height:16px;white-space:nowrap;margin-right:6px;font-variant-numeric:tabular-nums}
+.tla-tokenCell{color:var(--dsw-alias-label-tertiary);font-size:10px;line-height:17px;min-width:34px;text-align:right;font-variant-numeric:tabular-nums}
 .tla-chip{border-radius:var(--dsw-radius-sm);min-height:24px;color:var(--dsw-alias-label-tertiary);cursor:pointer;background:0 0;border:0;padding:3px 7px;font-size:11px;line-height:16px}
 .tla-chip:focus-visible{color:var(--dsw-alias-label-primary);background:var(--dsw-alias-interactive-bg-hover)}
 @media (hover:hover){.tla-chip:hover{color:var(--dsw-alias-label-primary);background:var(--dsw-alias-interactive-bg-hover)}}
@@ -101,6 +103,19 @@ window.__ModuleLoader__.load({
 			return 'idle';
 		}
 
+		/** Sum the four disjoint durable provider-usage buckets of one session. */
+		function tokenTotal(usage) {
+			return usage === void 0 ? void 0 : usage.uncachedInputTokens + usage.outputTokens + usage.cacheReadTokens + usage.cacheWriteTokens;
+		}
+
+		/** Compact token count, shared in shape with the official rows. */
+		function formatTokens(value) {
+			const scaled = (next) => next >= 100 ? String(Math.round(next)) : String(Math.round(next * 10) / 10);
+			if (value < 1e3) return String(value);
+			if (value < 1e6) return scaled(value / 1e3) + 'K';
+			return scaled(value / 1e6) + 'M';
+		}
+
 		/** Bottom-up visibility under the active status filter. */
 		function visibleSet(entries, catalogs, summaries, filter, depth) {
 			if (depth > 8) return new Set();
@@ -132,6 +147,7 @@ window.__ModuleLoader__.load({
 					const isOpen = expanded.has(entry.id);
 					const state = activityOf(entry, summaries);
 					const canExpand = hasChildren || loadingChildren;
+					const rowTokens = tokenTotal(summaries[entry.id]?.projectionValues?.tokenUsage);
 					return h('div', { key: entry.id, className: 'tla-node' }, [
 						h('div', { className: 'tla-row', onClick: () => openChild({ parentSessionId: parentId, childSessionId: entry.id, mode: entry.mode ?? 'continuable' }) }, [
 							h('span', { className: 'tla-clickarea' }, [
@@ -151,7 +167,8 @@ window.__ModuleLoader__.load({
 									h('span', { className: 'tla-depth' }, 'L' + level),
 									hasChildren && h('span', { className: 'tla-count' }, '\u00d7' + children.length),
 									loadedLeaf && h('span', { className: 'tla-count tla-countZero', title: t('leaf') }, '\u00d70'),
-									loadingChildren && h('span', { className: 'tla-count', title: t('loading') }, '\u2026')
+									loadingChildren && h('span', { className: 'tla-count', title: t('loading') }, '\u2026'),
+									rowTokens !== void 0 && h('span', { className: 'tla-tokenCell' }, formatTokens(rowTokens) + ' tok')
 								])
 							])
 						]),
@@ -215,9 +232,16 @@ window.__ModuleLoader__.load({
 			const collapseAll = () => setExpanded(new Set());
 			const visible = visibleSet(directEntries, catalogs, summaries, filter, 1);
 
+			// Whole-tree token consumption: the viewed session plus every
+			// descendant whose catalog is loaded, so it grows live as
+			// grandchildren appear and run.
+			const collectTokens = (entries) => entries.reduce((sum, entry) => sum + (tokenTotal(summaries[entry.id]?.projectionValues?.tokenUsage) ?? 0) + collectTokens(catalogs[entry.id]?.entries ?? []), 0);
+			const treeTokens = (tokenTotal(summaries[sessionId]?.projectionValues?.tokenUsage) ?? 0) + collectTokens(directEntries);
+
 			return h('div', { className: 'tla-tabRoot' }, [
 				h('div', { className: 'tla-toolbar' }, [
 					h('span', { className: 'tla-toolbarTitle' }, t('panel.title')),
+					h('span', { className: 'tla-tokens', title: t('tokens.tree.title') }, t('tokens.tree', { value: formatTokens(treeTokens) })),
 					h('button', { type: 'button', className: 'tla-chip', onClick: expandAll }, t('expand.all')),
 					h('button', { type: 'button', className: 'tla-chip', onClick: collapseAll }, t('collapse.all'))
 				]),
@@ -362,6 +386,8 @@ window.__ModuleLoader__.load({
 					'filter.done': '已完成',
 					'mode.external': '外部执行',
 					'leaf': '无孙代理',
+					'tokens.tree': '树合计 {value} tok',
+					'tokens.tree.title': '整个代理树（含当前会话与全部后代）的 token 消耗',
 					'loading': '加载中…',
 					'load.error': '加载代理树失败',
 					'empty': '（暂无子代理）',
@@ -382,6 +408,8 @@ window.__ModuleLoader__.load({
 					'filter.done': 'Done',
 					'mode.external': 'External run',
 					'leaf': 'No grandchildren',
+					'tokens.tree': 'tree {value} tok',
+					'tokens.tree.title': 'Token consumption of the whole agent tree, including the current session and every descendant',
 					'loading': 'Loading…',
 					'load.error': 'Could not load the agent tree',
 					'empty': '(no subagents)',
