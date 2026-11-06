@@ -15,6 +15,7 @@ window.__ModuleLoader__.load({
 .tla-activity{flex:none;justify-content:center;align-items:center;width:14px;height:14px;display:inline-flex}
 .tla-menu{z-index:120;box-sizing:border-box;border-radius:var(--dsw-radius-lg);--dsh-scrollbar-thumb:var(--dsw-alias-scrollbar-bg-l2);--dsh-scrollbar-thumb-hover:var(--dsw-alias-scrollbar-hover-l2);--dsw-elevation-stroke-color:var(--dsw-alias-border-l1);width:336px;max-width:min(400px,100vw - 32px);max-height:min(560px,100vh - 140px);box-shadow:var(--dsw-elevation-prominent);flex-direction:column;padding:4px;display:flex;position:fixed;overflow:hidden}
 .tla-menu:before{content:"";z-index:-1;border-radius:inherit;background:var(--dsw-specific-menu,var(--dsw-alias-bg-layer-1));backdrop-filter:var(--dsw-menu-backdrop-filter,none);position:absolute;inset:0}
+.tla-tabRoot{flex-direction:column;min-height:0;height:100%;display:flex}
 .tla-toolbar{align-items:center;gap:4px;padding:4px 8px 6px;display:flex}
 .tla-toolbarTitle{flex:1;min-width:0;color:var(--dsw-alias-label-secondary);font-size:11px;line-height:16px;text-overflow:ellipsis;white-space:nowrap;overflow:hidden}
 .tla-chip{border-radius:var(--dsw-radius-sm);min-height:24px;color:var(--dsw-alias-label-tertiary);cursor:pointer;background:0 0;border:0;padding:3px 7px;font-size:11px;line-height:16px}
@@ -153,8 +154,13 @@ window.__ModuleLoader__.load({
 				});
 		}
 
-		function ThreeLevelBadge({ sessionId, useSessions, useSessionStatus, t, refreshProjection, openChild }) {
-			const isChild = useSessions((state) => state.byId[sessionId]?.origin === 'subagent');
+		/**
+		 * The live tree for one session: children of that session at level 1,
+		 * grandchildren nested below them, each row carrying status, depth
+		 * badge, and child count. Data derives from the pushed subagent catalog
+		 * projections and the live session statuses, so it updates in real time.
+		 */
+		function TreePanel({ sessionId, useSessions, useSessionStatus, t, refreshProjection, openChild }) {
 			const projections = useSessions((state) => state.projectionsBySession ?? {});
 			const summaries = useSessions((state) => state.byId ?? {});
 			const statuses = useSessionStatus((value) => value);
@@ -171,21 +177,93 @@ window.__ModuleLoader__.load({
 			})), [projections, summaries, statuses]);
 			const rootCatalog = catalogs[sessionId];
 			const directEntries = rootCatalog?.entries ?? [];
-			const [open, setOpen] = useState(false);
 			const [filter, setFilter] = useState('all');
 			const [expanded, setExpanded] = useState(() => new Set());
-			const rootRef = useRef(null);
-			const menuRef = useRef(null);
-			const [menuPosition, setMenuPosition] = useState(undefined);
+			const refreshed = useRef(false);
 
-			// Load every direct child's catalog when the panel opens (the
-			// grandchild counts come from those projections).
+			// Pull every direct child's catalog once, so the grandchild counts
+			// and rows are available without manual expansion.
 			useEffect(() => {
-				if (!open) return;
+				if (refreshed.current) return;
+				refreshed.current = true;
 				for (const entry of directEntries) {
 					if (projections[entry.id] === undefined) refreshProjection(entry.id);
 				}
-			}, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+			}, [projections, directEntries]); // eslint-disable-line react-hooks/exhaustive-deps
+
+			const toggle = (id) => {
+				setExpanded((previous) => {
+					const next = new Set(previous);
+					if (next.has(id)) next.delete(id);
+					else next.add(id);
+					return next;
+				});
+			};
+			const expandAll = () => {
+				const next = new Set();
+				for (const entry of directEntries) if (catalogs[entry.id]?.entries?.length > 0) next.add(entry.id);
+				setExpanded(next);
+			};
+			const collapseAll = () => setExpanded(new Set());
+			const visible = visibleSet(directEntries, catalogs, summaries, filter, 1);
+
+			return h('div', { className: 'tla-tabRoot' }, [
+				h('div', { className: 'tla-toolbar' }, [
+					h('span', { className: 'tla-toolbarTitle' }, t('panel.title')),
+					h('button', { type: 'button', className: 'tla-chip', onClick: expandAll }, t('expand.all')),
+					h('button', { type: 'button', className: 'tla-chip', onClick: collapseAll }, t('collapse.all'))
+				]),
+				h('div', { className: 'tla-toolbar' }, [
+					h('button', { type: 'button', className: 'tla-chip' + (filter === 'all' ? ' tla-chipActive' : ''), onClick: () => setFilter('all') }, t('filter.all')),
+					h('button', { type: 'button', className: 'tla-chip' + (filter === 'running' ? ' tla-chipActive' : ''), onClick: () => setFilter('running') }, t('filter.running')),
+					h('button', { type: 'button', className: 'tla-chip' + (filter === 'done' ? ' tla-chipActive' : ''), onClick: () => setFilter('done') }, t('filter.done'))
+				]),
+				h('div', { className: 'tla-body', role: 'tree', 'aria-label': t('panel.title') },
+					rootCatalog === undefined || rootCatalog.state === 'loading'
+						? h('div', { className: 'tla-loading' }, t('loading'))
+						: rootCatalog.state !== 'ready'
+							? h('div', { className: 'tla-error' }, rootCatalog.error?.message ?? t('load.error'))
+							: directEntries.length === 0
+								? h('div', { className: 'tla-empty' }, t('empty'))
+								: TreeRows({
+									entries: directEntries,
+									parentId: sessionId,
+									level: 1,
+									catalogs,
+									summaries,
+									filter,
+									visible,
+									expanded,
+									toggle,
+									openChild,
+									t
+								}))
+			]);
+		}
+
+		/** Header badge on the main session: tree summary plus the popover tree. */
+		function ThreeLevelBadge(props) {
+			const { sessionId, useSessions, useSessionStatus, t, refreshProjection, openChild } = props;
+			const isChild = useSessions((state) => state.byId[sessionId]?.origin === 'subagent');
+			const projections = useSessions((state) => state.projectionsBySession ?? {});
+			const summaries = useSessions((state) => state.byId ?? {});
+			const statuses = useSessionStatus((value) => value);
+			const catalogs = useMemo(() => Object.fromEntries(Object.entries(projections).map(([id, snapshot]) => {
+				const projected = snapshot.values?.subagentCatalog;
+				return [id, {
+					state: snapshot.state === 'idle' ? (projected === undefined ? 'loading' : 'ready') : (snapshot.state === 'migration-required' && projected !== undefined ? 'ready' : snapshot.state),
+					entries: (projected ?? []).map((entry) => ({
+						...entry,
+						activity: (statuses?.get?.(entry.id)?.running ?? summaries[entry.id]?.running) === true ? 'running' : 'inactive'
+					}))
+				}];
+			})), [projections, summaries, statuses]);
+			const rootCatalog = catalogs[sessionId];
+			const directEntries = rootCatalog?.entries ?? [];
+			const [open, setOpen] = useState(false);
+			const rootRef = useRef(null);
+			const menuRef = useRef(null);
+			const [menuPosition, setMenuPosition] = useState(undefined);
 
 			useEffect(() => {
 				if (!open) return;
@@ -210,22 +288,6 @@ window.__ModuleLoader__.load({
 			const grandKnown = knownGrandCounts.length === directEntries.length && directEntries.length > 0;
 			const grandCount = knownGrandCounts.reduce((sum, count) => sum + count, 0);
 			if (directEntries.length === 0 && (rootCatalog === undefined || rootCatalog.state === 'ready')) return null;
-
-			const toggle = (id) => {
-				setExpanded((previous) => {
-					const next = new Set(previous);
-					if (next.has(id)) next.delete(id);
-					else next.add(id);
-					return next;
-				});
-			};
-			const expandAll = () => {
-				const next = new Set();
-				for (const entry of directEntries) if (catalogs[entry.id]?.entries?.length > 0) next.add(entry.id);
-				setExpanded(next);
-			};
-			const collapseAll = () => setExpanded(new Set());
-			const visible = visibleSet(directEntries, catalogs, summaries, filter, 1);
 
 			const openMenu = () => {
 				if (open) {
@@ -265,41 +327,19 @@ window.__ModuleLoader__.load({
 					'aria-label': t('panel.title'),
 					style: { top: menuPosition?.top, right: menuPosition?.right }
 				}, [
-					h('div', { className: 'tla-toolbar' }, [
-						h('span', { className: 'tla-toolbarTitle' }, t('panel.title')),
-						h('button', { type: 'button', className: 'tla-chip', onClick: expandAll }, t('expand.all')),
-						h('button', { type: 'button', className: 'tla-chip', onClick: collapseAll }, t('collapse.all'))
-					]),
-					h('div', { className: 'tla-toolbar' }, [
-						h('button', { type: 'button', className: 'tla-chip' + (filter === 'all' ? ' tla-chipActive' : ''), onClick: () => setFilter('all') }, t('filter.all')),
-						h('button', { type: 'button', className: 'tla-chip' + (filter === 'running' ? ' tla-chipActive' : ''), onClick: () => setFilter('running') }, t('filter.running')),
-						h('button', { type: 'button', className: 'tla-chip' + (filter === 'done' ? ' tla-chipActive' : ''), onClick: () => setFilter('done') }, t('filter.done'))
-					]),
-					h('div', { className: 'tla-body', role: 'tree', 'aria-label': t('panel.title') },
-						rootCatalog === undefined || rootCatalog.state === 'loading'
-							? h('div', { className: 'tla-loading' }, t('loading'))
-							: rootCatalog.state !== 'ready'
-								? h('div', { className: 'tla-error' }, rootCatalog.error?.message ?? t('load.error'))
-								: TreeRows({
-									entries: directEntries,
-									parentId: sessionId,
-									level: 1,
-									catalogs,
-									summaries,
-									filter,
-									visible,
-									expanded,
-									toggle,
-									openChild,
-									t
-								}))
-				])
-			, document.body)
+					h(TreePanel, props)
+				]), document.body)
 			]);
+		}
+
+		/** Right-sidebar tab: the permanent tree view for one session. */
+		function TreeTabBody(props) {
+			return h(TreePanel, props);
 		}
 
 		const inject = ['slots', 'locale', 'sessions', 'uiWorkspace'];
 		function apply(ctx) {
+			const t = ctx.locale.bind(NS);
 			ctx.effect(() => ctx.locale.register(NS, {
 				zh: {
 					'badge': '{direct} 子代理 · {grand} 孙代理',
@@ -315,7 +355,10 @@ window.__ModuleLoader__.load({
 					'mode.external': '外部执行',
 					'loading': '加载中…',
 					'load.error': '加载代理树失败',
-					'empty': '（暂无子代理）'
+					'empty': '（暂无子代理）',
+					'type.label': '代理树',
+					'guide.title': '代理树',
+					'guide.description': '查看全部子代理与孙代理的状态、层级与数量'
 				},
 				en: {
 					'badge': '{direct} subagents · {grand} grand',
@@ -331,7 +374,10 @@ window.__ModuleLoader__.load({
 					'mode.external': 'External run',
 					'loading': 'Loading…',
 					'load.error': 'Could not load the agent tree',
-					'empty': '(no subagents)'
+					'empty': '(no subagents)',
+					'type.label': 'Agent tree',
+					'guide.title': 'Agent tree',
+					'guide.description': 'View every subagent and grandchild with status, level, and counts'
 				}
 			}), 'three-level-agent: client dictionaries');
 			const actions = () => ({
@@ -342,6 +388,7 @@ window.__ModuleLoader__.load({
 					ctx.uiWorkspace.openSession(address);
 				}
 			});
+			// Header badge (main session only).
 			ctx.slots.inject('conversation.session.header.actions', () => ctx.slots.register({
 				name: 'conversation.session.header.actions',
 				id: 'three-level-agent-tree',
@@ -349,6 +396,27 @@ window.__ModuleLoader__.load({
 				locale: NS,
 				inject: actions
 			}, ThreeLevelBadge));
+			// Permanent right-sidebar tab with a guide entry for the empty sidebar.
+			ctx.inject(['sidebarRightTabs'], (scope) => {
+				scope.effect(() => scope.sidebarRightTabs.register({
+					id: 'three-level-agent-tree',
+					kind: 'three-level-agent-tree',
+					title: () => t('type.label'),
+					guide: [{
+						id: 'tree',
+						order: 90,
+						title: () => t('guide.title'),
+						description: () => t('guide.description'),
+						icon: TierIcon
+					}]
+				}), 'three-level-agent: sidebar tab type');
+				scope.slots.inject('sidebar.right.pane.tab', () => scope.slots.register({
+					name: 'sidebar.right.pane.tab',
+					key: 'three-level-agent-tree',
+					locale: NS,
+					inject: actions
+				}, TreeTabBody));
+			});
 		}
 		return { inject, apply };
 	}
