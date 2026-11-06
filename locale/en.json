@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Three-level agents",
+    "description": "Lets subagents create their own sub-subagents and message any agent in the delegation tree (FIFO queue, mutex, ready-wait)."
+  }
+}
