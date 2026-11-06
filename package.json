@@ -1,7 +1,19 @@
 {
-  "name": "@local/dsh-three-level-agent",
+  "name": "dsh-three-level-agent",
   "version": "1.0.0",
-  "private": true,
+  "description": "三级代理插件 for DeepSeek Harness: three-level subagent delegation (1x9x9) with tree-wide async agent messaging and a web UI tree panel",
+  "keywords": ["dsh", "dsh-plugin", "deepseek-harness", "three-level-agents", "multi-agent", "subagents", "agent-orchestration", "ai-agents"],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AntheaLaffy/dsh-three-level-agent.git"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "dsh": ">=0.2.2-rc.1 <0.3.0"
+  },
   "type": "module",
   "exports": {
     ".": "./index.js",

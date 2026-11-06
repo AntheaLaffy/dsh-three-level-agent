@@ -1,4 +1,4 @@
-# @local/dsh-three-level-agent
+# dsh-three-level-agent
 
 三级代理插件 — three-level agent mode for DeepSeek Harness.
 
@@ -28,7 +28,7 @@ Plugin rows are edited in the profile's `cordis.patch.yml`:
 
 ```yaml
 - id: three-level-agent
-  name: '@local/dsh-three-level-agent'
+  name: 'dsh-three-level-agent'
   config:
     maxDepth: 2
     maxActiveSubagents: 128

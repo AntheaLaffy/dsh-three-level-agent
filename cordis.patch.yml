@@ -1,4 +1,4 @@
 - insert:
     - id: three-level-agent
-      name: '@local/dsh-three-level-agent'
+      name: 'dsh-three-level-agent'
       config: {}

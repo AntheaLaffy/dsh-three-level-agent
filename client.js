@@ -1,5 +1,5 @@
 window.__ModuleLoader__.load({
-	id: '@local/dsh-three-level-agent',
+	id: 'dsh-three-level-agent',
 	factory(require) {
 		const React = require('react');
 		const ReactDOM = require('react-dom');
@@ -49,16 +49,16 @@ window.__ModuleLoader__.load({
 .tla-error{color:var(--dsw-alias-state-error-primary)}
 .tla-loading{color:var(--dsw-alias-label-tertiary);padding:6px 10px;font-size:11px;line-height:16px}
 `;
-		const tagId = '@local/dsh-three-level-agent/client.css';
+		const tagId = 'dsh-three-level-agent/client.css';
 		if (document.querySelector('style[data-plugin-css=' + JSON.stringify(tagId) + ']') === null) {
 			const tag = document.createElement('style');
-			tag.dataset.plugin = '@local/dsh-three-level-agent';
+			tag.dataset.plugin = 'dsh-three-level-agent';
 			tag.dataset.pluginCss = tagId;
 			tag.textContent = CSS;
 			document.head.appendChild(tag);
 		}
 
-		const NS = '@local/dsh-three-level-agent/client';
+		const NS = 'dsh-three-level-agent/client';
 
 		/** Inline copy of the bundle icon (three-tier nodes). */
 		function TierIcon({ size = 14 }) {
