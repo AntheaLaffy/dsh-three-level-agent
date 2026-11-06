@@ -40,6 +40,8 @@ window.__ModuleLoader__.load({
 .tla-right{flex:none;align-items:center;gap:6px;display:flex}
 .tla-depth{border-radius:var(--dsw-radius-sm);color:var(--dsw-alias-label-tertiary);border:.5px solid var(--dsw-alias-border-l2);font-size:10px;line-height:14px;padding:0 5px;font-variant-numeric:tabular-nums}
 .tla-count{color:var(--dsw-alias-label-tertiary);font-size:10px;line-height:17px;min-width:18px;text-align:right;font-variant-numeric:tabular-nums}
+.tla-countZero{opacity:.55}
+.tla-countZero[title]{cursor:default}
 .tla-children{margin-left:16px;padding-left:3px;position:relative}
 .tla-children:before,.tla-children>.tla-node:before{content:"";border-left:.5px solid var(--dsw-alias-border-l2);position:absolute;left:0}
 .tla-children:before{height:23px;top:-23px}
@@ -120,8 +122,12 @@ window.__ModuleLoader__.load({
 				.map((entry) => {
 					const childCatalog = catalogs[entry.id];
 					const children = childCatalog?.entries ?? [];
+					const loadingChildren = entry.external !== true && (childCatalog === undefined || childCatalog.state === 'loading');
+					// A loaded empty catalog means "this agent has no grandchildren":
+					// show a muted ×0 leaf marker instead of nothing, so nobody has
+					// to expand the row to find out.
+					const loadedLeaf = !loadingChildren && childCatalog !== undefined && children.length === 0;
 					const hasChildren = childCatalog !== undefined && children.length > 0;
-					const loadingChildren = childCatalog === undefined || childCatalog.state === 'loading';
 					const childVisible = visibleSet(children, catalogs, summaries, filter, level + 1);
 					const isOpen = expanded.has(entry.id);
 					const state = activityOf(entry, summaries);
@@ -144,7 +150,8 @@ window.__ModuleLoader__.load({
 								h('span', { className: 'tla-right' }, [
 									h('span', { className: 'tla-depth' }, 'L' + level),
 									hasChildren && h('span', { className: 'tla-count' }, '\u00d7' + children.length),
-									loadingChildren && h('span', { className: 'tla-count' }, '\u2026')
+									loadedLeaf && h('span', { className: 'tla-count tla-countZero', title: t('leaf') }, '\u00d70'),
+									loadingChildren && h('span', { className: 'tla-count', title: t('loading') }, '\u2026')
 								])
 							])
 						]),
@@ -187,6 +194,7 @@ window.__ModuleLoader__.load({
 				if (refreshed.current) return;
 				refreshed.current = true;
 				for (const entry of directEntries) {
+					if (entry.external === true) continue;
 					if (projections[entry.id] === undefined) refreshProjection(entry.id);
 				}
 			}, [projections, directEntries]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -353,6 +361,7 @@ window.__ModuleLoader__.load({
 					'filter.running': '运行中',
 					'filter.done': '已完成',
 					'mode.external': '外部执行',
+					'leaf': '无孙代理',
 					'loading': '加载中…',
 					'load.error': '加载代理树失败',
 					'empty': '（暂无子代理）',
@@ -372,6 +381,7 @@ window.__ModuleLoader__.load({
 					'filter.running': 'Running',
 					'filter.done': 'Done',
 					'mode.external': 'External run',
+					'leaf': 'No grandchildren',
 					'loading': 'Loading…',
 					'load.error': 'Could not load the agent tree',
 					'empty': '(no subagents)',
