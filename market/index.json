@@ -1,0 +1,58 @@
+{
+  "format": 1,
+  "title": {
+    "en": "AntheaLaffy's DSH plugins",
+    "zh": "AntheaLaffy 的 DSH 插件"
+  },
+  "description": {
+    "en": "Community plugins for DeepSeek Harness.",
+    "zh": "DeepSeek Harness 的社区插件。"
+  },
+  "metadata": {
+    "categories": {
+      "agent-orchestration": {
+        "title": { "en": "Agent orchestration", "zh": "代理编排" }
+      }
+    },
+    "labels": {
+      "community": {
+        "title": { "en": "Community", "zh": "社区" }
+      }
+    },
+    "sortKeys": {}
+  },
+  "plugins": [
+    {
+      "name": "dsh-three-level-agent",
+      "title": { "en": "Three-level agents", "zh": "三级代理" },
+      "description": {
+        "en": "Three-level subagent delegation (1x9x9) with tree-wide async agent messaging — FIFO queue, mutex, ready-wait — plus a web UI tree panel.",
+        "zh": "三级代理委派（1×9×9）：子代理可建立自己的子代理，代理树内任意双向异步通信（FIFO 队列、互斥锁、就绪等待），附 Web 树形面板。"
+      },
+      "icon": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0OCA0OCI+CiAgPHJlY3Qgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4IiByeD0iMTAiIGZpbGw9IiMwYzFhMzMiLz4KICA8ZyBzdHJva2U9IiM0ZDhjZmYiIHN0cm9rZS13aWR0aD0iMS40IiBmaWxsPSJub25lIj4KICAgIDxwYXRoIGQ9Ik0yNCAxMCBMMTIgMjIgTTI0IDEwIEwyNCAyMiBNMjQgMTAgTDM2IDIyIi8+CiAgICA8cGF0aCBkPSJNMTIgMjIgTDggMzcgTTEyIDIyIEwxNSAzNyBNMTIgMjIgTDIxIDM3Ii8+CiAgICA8cGF0aCBkPSJNMjQgMjIgTDE5IDM3IE0yNCAyMiBMMjQgMzcgTTI0IDIyIEwyOSAzNyIvPgogICAgPHBhdGggZD0iTTM2IDIyIEwzMyAzNyBNMzYgMjIgTDQwIDM3IE0zNiAyMiBMMjcgMzciLz4KICA8L2c+CiAgPGcgZmlsbD0iIzhkYjhmZiI+CiAgICA8Y2lyY2xlIGN4PSIyNCIgY3k9IjkuNSIgcj0iMy40Ii8+CiAgICA8Y2lyY2xlIGN4PSIxMiIgY3k9IjIyLjUiIHI9IjMiLz48Y2lyY2xlIGN4PSIyNCIgY3k9IjIyLjUiIHI9IjMiLz48Y2lyY2xlIGN4PSIzNiIgY3k9IjIyLjUiIHI9IjMiLz4KICAgIDxjaXJjbGUgY3g9IjgiIGN5PSIzNy41IiByPSIyLjciLz48Y2lyY2xlIGN4PSIxNSIgY3k9IjM3LjUiIHI9IjIuNyIvPjxjaXJjbGUgY3g9IjIxIiBjeT0iMzcuNSIgcj0iMi43Ii8+PGNpcmNsZSBjeD0iMjciIGN5PSIzNy41IiByPSIyLjciLz48Y2lyY2xlIGN4PSIzMyIgY3k9IjM3LjUiIHI9IjIuNyIvPjxjaXJjbGUgY3g9IjQwIiBjeT0iMzcuNSIgcj0iMi43Ii8+CiAgPC9nPgo8L3N2Zz4K",
+      "author": "AntheaLaffy",
+      "homepage": "https://github.com/AntheaLaffy/dsh-three-level-agent",
+      "repository": {
+        "url": "https://github.com/AntheaLaffy/dsh-three-level-agent"
+      },
+      "metadata": {
+        "category": "agent-orchestration",
+        "keywords": ["dsh", "dsh-plugin", "deepseek-harness", "three-level-agents", "multi-agent", "subagents", "agent-orchestration", "ai-agents"],
+        "labels": ["community"],
+        "sortKeys": {}
+      },
+      "versions": [
+        {
+          "version": "1.0.0",
+          "publishTimestamp": 1793982287,
+          "source": {
+            "type": "git",
+            "url": "https://github.com/AntheaLaffy/dsh-three-level-agent.git",
+            "commit": "83e2c07e45546ca862e83cc5f4a077876f3f72b1"
+          },
+          "engines": { "dsh": ">=0.2.2-rc.1 <0.3.0" }
+        }
+      ]
+    }
+  ]
+}

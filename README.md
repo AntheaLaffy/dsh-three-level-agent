@@ -16,6 +16,28 @@
    回投给发送方。已结束的子代理不会离开树索引——只要它的父代理还活着，
    投递会通过运行时的冷恢复（cold resume）把它唤醒，就像原生 `send_message` 一样。
 
+## Install
+
+### From the plugin market (recommended)
+
+Add this index URL in the market settings (Discover page):
+
+```
+https://raw.githubusercontent.com/AntheaLaffy/dsh-three-level-agent/main/market/index.json
+```
+
+The plugin then appears in the Discover page as **三级代理 / Three-level agents** and installs
+with one click (`plugin_manager` `install_bundle` with the market's install target). The index is
+format 1 ([market/index.json](market/index.json)) and pins the current commit through a `git`
+install source.
+
+### From the local checkout
+
+```bash
+# In a profile-launched dsh session:
+plugin_manager install_bundle /path/to/dsh-three-level-agent
+```
+
 ## Configuration
 
 - `maxDepth` (default 2): 委派深度上限，≥2 即开启三级代理。
