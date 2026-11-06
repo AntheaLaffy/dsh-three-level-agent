@@ -61,8 +61,8 @@ window.__ModuleLoader__.load({
 
 		const NS = 'dsh-three-level-agent/client';
 
-		/** Inline copy of the bundle icon (three-tier nodes). */
-		function TierIcon({ size = 14 }) {
+		/** Inline copy of the bundle icon (three-tier nodes); 22px for guide cards, 14px in the header badge. */
+		function TierIcon({ size = 22 }) {
 			return h('svg', { viewBox: '0 0 48 48', width: size, height: size, 'aria-hidden': true },
 				h('rect', { width: 48, height: 48, rx: 10, fill: '#0c1a33' }),
 				h('g', { stroke: '#4d8cff', strokeWidth: 1.4, fill: 'none' },
